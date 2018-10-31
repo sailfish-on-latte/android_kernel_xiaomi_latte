@@ -77,6 +77,7 @@ static int prox_read_raw(struct iio_dev *indio_dev,
 	int ret;
 	int ret_type;
 	s32 poll_value;
+	s32 min;
 
 	*val = 0;
 	*val2 = 0;
@@ -85,8 +86,8 @@ static int prox_read_raw(struct iio_dev *indio_dev,
 		switch (chan->scan_index) {
 		case  CHANNEL_SCAN_INDEX_PRESENCE:
 			report_id = prox_state->prox_attr.report_id;
-			address =
-			HID_USAGE_SENSOR_HUMAN_PRESENCE;
+			min = prox_state->prox_attr.logical_minimum;
+			address = HID_USAGE_SENSOR_HUMAN_PRESENCE;
 			break;
 		default:
 			report_id = -1;
@@ -106,7 +107,7 @@ static int prox_read_raw(struct iio_dev *indio_dev,
 			*val = sensor_hub_input_attr_get_raw_value(
 				prox_state->common_attributes.hsdev,
 				HID_USAGE_SENSOR_PROX, address,
-				report_id);
+				report_id, min < 0);
 			hid_sensor_power_state(&prox_state->common_attributes,
 						false);
 		} else {
