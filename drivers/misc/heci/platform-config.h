@@ -20,7 +20,7 @@
 /* Build ID string */
 #define	BUILD_ID	"0195-fix-recv-hid-hw-reset"
 
-#define	ISH_DEBUG	0
+#define	ISH_DEBUG	1
 #if ISH_DEBUG
 #define	ISH_DBG_PRINT	printk
 #else
