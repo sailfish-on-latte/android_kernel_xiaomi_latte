@@ -13900,11 +13900,13 @@ _Pragma("GCC diagnostic ignored \"-Wcast-qual\"")
 		/* p2p discovery iface ndev ptr could be null */
 		if (iter->ndev == NULL)
 			continue;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
 		if (wl_get_drv_status(cfg, CONNECTED, iter->ndev)) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
 			cfg80211_disconnected(iter->ndev, 0, NULL, 0, false, GFP_KERNEL);
-		}
-#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)) */
+#else
+			cfg80211_disconnected(iter->ndev, 0, NULL, 0, GFP_KERNEL);
+#endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0)) */
+        }
 		wl_clr_drv_status(cfg, READY, iter->ndev);
 		wl_clr_drv_status(cfg, SCANNING, iter->ndev);
 		wl_clr_drv_status(cfg, SCAN_ABORTING, iter->ndev);
