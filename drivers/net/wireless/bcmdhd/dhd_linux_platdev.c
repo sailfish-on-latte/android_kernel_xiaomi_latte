@@ -28,6 +28,7 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
+#include <linux/acpi.h>
 #include <bcmutils.h>
 #include <linux_osl.h>
 #include <dhd_dbg.h>
@@ -82,6 +83,35 @@ extern int bcm_bt_lock(int cookie);
 extern void bcm_bt_unlock(int cookie);
 static int lock_cookie_wifi = 'W' | 'i'<<8 | 'F'<<16 | 'i'<<24;	/* cookie is "WiFi" */
 #endif /* ENABLE_4335BT_WAR */
+
+#ifdef CONFIG_ACPI
+static struct acpi_device_id bcm_acpi_id[] = {
+/* ACPI IDs here */
+	{ "BCM43241" },
+	{ "BCM4321" },
+	{ "BCM43341" },
+	{ "BCM4334" },
+	{ "BCM4356" },
+	{ }
+};
+MODULE_DEVICE_TABLE(acpi, bcm_acpi_id);
+#endif /* CONFIG_ACPI */
+
+#ifdef CONFIG_ACPI
+static int wifi_acpi_match(struct device *dev, void *data)
+{
+	struct acpi_device_id *ids = data, *id;
+	struct platform_device *pdev = to_platform_device(dev);
+
+	for (id = ids; id->id[0]; id++) {
+		if (!strncmp(id->id, pdev->name, strlen(id->id))) {
+			DHD_ERROR(("found wifi acpi device %s\n", id->id));
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+#endif /* CONFIG_ACPI */
 
 wifi_adapter_info_t* dhd_wifi_platform_get_adapter(uint32 bus_type, uint32 bus_num, uint32 slot_num)
 {
@@ -159,6 +189,9 @@ int wifi_platform_set_power(wifi_adapter_info_t *adapter, bool on, unsigned long
 		DHD_ERROR(("%s: regulator enable/disable failed", __FUNCTION__));
 #else
 	struct wifi_platform_data *plat_data;
+#if defined(CONFIG_ACPI)
+	struct device *dev;
+#endif /* CONFIG_ACPI */
 
 	if (!adapter || !adapter->wifi_plat_data)
 		return -EINVAL;
@@ -181,6 +214,56 @@ int wifi_platform_set_power(wifi_adapter_info_t *adapter, bool on, unsigned long
 
 		err = plat_data->set_power(on);
 	}
+
+#if defined(CONFIG_ACPI)
+	dev = bus_find_device(&platform_bus_type, NULL, bcm_acpi_id, wifi_acpi_match);
+	if (dev) {
+		struct acpi_device *adev;
+		if (acpi_bus_get_device(ACPI_HANDLE(dev), &adev) == 0) {
+			/* Make sure ACPI PM functions will perform PM requests */
+			adev->flags.power_manageable = 1;
+
+			if (on) {
+				acpi_device_set_power(adev, ACPI_STATE_D0);
+#if defined(BCMSDIO)
+				if (adapter->sdio_func && adapter->sdio_func->card && adapter->sdio_func->card->host)
+					mmc_power_restore_host(adapter->sdio_func->card->host);
+#endif /* BCMSDIO */
+#if defined(BCMPCIE)
+				if (adapter->pci_dev) {
+					msleep(50);
+					pci_set_power_state(adapter->pci_dev, PCI_D0);
+					if (adapter->pci_saved_state)
+						pci_load_and_free_saved_state(adapter->pci_dev, &adapter->pci_saved_state);
+					pci_restore_state(adapter->pci_dev);
+					err = pci_enable_device(adapter->pci_dev);
+					if (err < 0)
+						DHD_ERROR(("%s: PCI enable device failed", __FUNCTION__));
+					pci_set_master(adapter->pci_dev);
+				}
+#endif /* BCMPCIE */
+			} else {
+#if defined(BCMSDIO)
+				if (adapter->sdio_func && adapter->sdio_func->card && adapter->sdio_func->card->host)
+					mmc_power_save_host(adapter->sdio_func->card->host);
+#endif /* BCMSDIO */
+#if defined(BCMPCIE)
+				if (adapter->pci_dev) {
+					pci_save_state(adapter->pci_dev);
+					adapter->pci_saved_state = pci_store_saved_state(adapter->pci_dev);
+					if (pci_is_enabled(adapter->pci_dev))
+						pci_disable_device(adapter->pci_dev);
+					pci_set_power_state(adapter->pci_dev, PCI_D3hot);
+				}
+#endif /* BCMPCIE */
+				acpi_device_set_power(adev, ACPI_STATE_D3_COLD);
+			}
+			/* Make sure ACPI PM is not performed outside of this function  */
+			adev->flags.power_manageable = 0;
+		}
+	}
+
+#endif /* CONFIG_ACPI */
 
 	if (msec && !err)
 		OSL_SLEEP(msec);
@@ -210,6 +293,46 @@ int wifi_platform_bus_enumerate(wifi_adapter_info_t *adapter, bool device_presen
 	}
 	return err;
 
+}
+
+#define MAC_ADDRESS_LEN 12
+static int wifi_get_external_mac_addr(unsigned char *buf)
+{
+	int ret = 0;
+	int i;
+	struct file *fp = NULL;
+	unsigned char c_mac[MAC_ADDRESS_LEN];
+	char fname[] = "/config/wifi/mac.txt";
+
+	DHD_TRACE(("%s Enter\n", __func__));
+
+	fp = dhd_os_open_image(fname);
+	if (fp == NULL) {
+		DHD_ERROR(("%s: unable to open %s\n", __func__, fname));
+		return 1;
+	}
+
+	if (dhd_os_get_image_block(c_mac, MAC_ADDRESS_LEN, fp)
+	    != MAC_ADDRESS_LEN){
+		DHD_ERROR(("%s: Error reading from %s\n", __func__, fname));
+		dhd_os_close_image(fp);
+		return 1;
+	}
+	dhd_os_close_image(fp);
+
+	for (i = 0; i < MAC_ADDRESS_LEN; i += 2) {
+		c_mac[i] = bcm_isdigit(c_mac[i]) ?
+			c_mac[i]-'0' : bcm_toupper(c_mac[i])-'A'+10;
+		c_mac[i+1] = bcm_isdigit(c_mac[i+1]) ?
+			c_mac[i+1]-'0' : bcm_toupper(c_mac[i+1])-'A'+10;
+
+		buf[i/2] = c_mac[i]*16 + c_mac[i+1];
+	}
+
+	DHD_TRACE(("%s: read from file mac address: %x:%x:%x:%x:%x:%x\n",
+		   __func__, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]));
+
+	return ret;
 }
 
 int wifi_platform_get_mac_addr(wifi_adapter_info_t *adapter, unsigned char *buf)
@@ -317,6 +440,59 @@ static int wifi_plat_dev_drv_probe(struct platform_device *pdev)
 	return wifi_plat_dev_probe_ret;
 }
 
+#ifdef CONFIG_ACPI
+static int wifi_plat_dev_drv_probe_acpi(struct platform_device *pdev)
+{
+	wifi_adapter_info_t *adapter;
+	acpi_handle handle;
+	struct acpi_device *adev;
+	int irq_num = -1;
+
+	/* Android style wifi platform data device ("bcmdhd_wlan" or "bcm4329_wlan")
+	 * is kept for backward compatibility and supports only 1 adapter
+	 */
+	ASSERT(dhd_wifi_platdata != NULL);
+	ASSERT(dhd_wifi_platdata->num_adapters == 1);
+	adapter = &dhd_wifi_platdata->adapters[0];
+	dhd_wlan_control.get_mac_addr = wifi_get_external_mac_addr;
+	adapter->wifi_plat_data = (void *)&dhd_wlan_control;
+
+	if (ACPI_HANDLE(&pdev->dev)) {
+		handle = ACPI_HANDLE(&pdev->dev);
+
+		if (!handle || acpi_bus_get_device(handle, &adev))
+			DHD_ERROR(("%s: could not get acpi pointer!\n", __FUNCTION__));
+		else {
+			/* Ignore SDIO ACPI power states and
+			 * prevent ACPI PM at probing stage.
+			 * power_manageable is reenabled when
+			 * setting power for the first time
+			 */
+			adev->flags.power_manageable = 0;
+			/* Ignore SDH SDIO controller ACPI PM state */
+			adev->power.flags.ignore_parent = 1;
+		}
+#if defined(OOB_INTR_ONLY) || defined(BCMPCIE_OOB_HOST_WAKE)
+		irq_num = desc_to_gpio(gpiod_get_index(&pdev->dev, NULL, 0));
+		pr_err("%s: Using ACPI table to get GPIO number: %d\n", __FUNCTION__, irq_num);
+		if (irq_num > 0) {
+			irq_num = gpio_to_irq(irq_num);
+			pr_err("%s: IRQ number: %d\n", __FUNCTION__, irq_num);
+		}
+#endif
+	} else {
+		DHD_ERROR(("%s: Null ACPI_HANDLE, try legacy probe\n", __FUNCTION__));
+		return wifi_plat_dev_drv_probe(pdev);
+	}
+
+	adapter->irq_num = irq_num;
+	adapter->intr_flags = IRQF_TRIGGER_FALLING;
+
+	wifi_plat_dev_probe_ret = dhd_wifi_platform_load();
+	return wifi_plat_dev_probe_ret;
+}
+#endif /* CONFIG_ACPI */
+
 static int wifi_plat_dev_drv_remove(struct platform_device *pdev)
 {
 	wifi_adapter_info_t *adapter;
@@ -373,13 +549,21 @@ static const struct of_device_id wifi_device_dt_match[] = {
 	{},
 };
 #endif /* CONFIG_DTS */
+
 static struct platform_driver wifi_platform_dev_driver = {
+#ifdef CONFIG_ACPI
+	.probe          = wifi_plat_dev_drv_probe_acpi,
+#else
 	.probe          = wifi_plat_dev_drv_probe,
+#endif /* CONFIG_ACPI */
 	.remove         = wifi_plat_dev_drv_remove,
 	.suspend        = wifi_plat_dev_drv_suspend,
 	.resume         = wifi_plat_dev_drv_resume,
 	.driver         = {
 	.name   = WIFI_PLAT_NAME,
+#ifdef CONFIG_ACPI
+	.acpi_match_table = ACPI_PTR(bcm_acpi_id),
+#endif /* CONFIG_ACPI */
 #ifdef CONFIG_DTS
 	.of_match_table = wifi_device_dt_match,
 #endif /* CONFIG_DTS */
@@ -414,6 +598,11 @@ static int wifi_ctrlfunc_register_drv(void)
 	int err = 0;
 	struct device *dev1, *dev2;
 	wifi_adapter_info_t *adapter;
+
+#ifdef CONFIG_ACPI
+	dev1 = bus_find_device(&platform_bus_type, NULL, bcm_acpi_id, wifi_acpi_match);
+	if (!dev1)
+#endif /* CONFIG_ACPI */
 
 	dev1 = bus_find_device(&platform_bus_type, NULL, WIFI_PLAT_NAME, wifi_platdev_match);
 	dev2 = bus_find_device(&platform_bus_type, NULL, WIFI_PLAT_NAME2, wifi_platdev_match);
@@ -491,6 +680,10 @@ void wifi_ctrlfunc_unregister_drv(void)
 	platform_driver_unregister(&wifi_platform_dev_driver);
 #else
 	struct device *dev1, *dev2;
+#ifdef CONFIG_ACPI
+	dev1 = bus_find_device(&platform_bus_type, NULL, bcm_acpi_id, wifi_acpi_match);
+	if (!dev1)
+#endif /* CONFIG_ACPI */
 	dev1 = bus_find_device(&platform_bus_type, NULL, WIFI_PLAT_NAME, wifi_platdev_match);
 	dev2 = bus_find_device(&platform_bus_type, NULL, WIFI_PLAT_NAME2, wifi_platdev_match);
 	if (!dts_enabled)
@@ -562,6 +755,10 @@ int dhd_wifi_platform_register_drv(void)
 	 * be added in kernel early boot (e.g. board config file).
 	 */
 	if (cfg_multichip) {
+#ifdef CONFIG_ACPI
+		dev = bus_find_device(&platform_bus_type, NULL, bcm_acpi_id, wifi_acpi_match);
+		if (!dev)
+#endif /* CONFIG_ACPI */
 		dev = bus_find_device(&platform_bus_type, NULL, WIFI_PLAT_EXT, wifi_platdev_match);
 		if (dev == NULL) {
 			DHD_ERROR(("bcmdhd wifi platform data device not found!!\n"));

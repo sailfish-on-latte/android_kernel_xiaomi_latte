@@ -79,6 +79,13 @@ typedef struct wifi_adapter_info {
 	uint		bus_type;
 	uint		bus_num;
 	uint		slot_num;
+#if defined(BCMSDIO)
+	struct sdio_func *sdio_func;
+#endif /* BCMSDIO */
+#if defined(BCMPCIE)
+	struct pci_dev *pci_dev;
+	struct pci_saved_state *pci_saved_state;
+#endif /* BCMPCIE */
 } wifi_adapter_info_t;
 
 typedef struct bcmdhd_wifi_platdata {
