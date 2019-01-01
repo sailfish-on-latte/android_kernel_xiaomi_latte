@@ -12975,7 +12975,7 @@ static s32 wl_event_handler(void *data)
 	struct bcm_cfg80211 *cfg = NULL;
 	struct wl_event_q *e;
 	tsk_ctl_t *tsk = (tsk_ctl_t *)data;
-	struct wireless_dev *wdev = NULL;
+	bcm_struct_cfgdev *cfgdev = NULL;
 
 	cfg = (struct bcm_cfg80211 *)tsk->parent;
 
@@ -12983,37 +12983,72 @@ static s32 wl_event_handler(void *data)
 
 	while (down_interruptible (&tsk->sema) == 0) {
 		SMP_RD_BARRIER_DEPENDS();
-		if (tsk->terminated) {
+		if (tsk->terminated)
 			break;
-		}
 		while ((e = wl_deq_event(cfg))) {
-			WL_DBG(("event type (%d), ifidx: %d bssidx: %d \n",
-				e->etype, e->emsg.ifidx, e->emsg.bsscfgidx));
+			WL_DBG(("event type (%d), if idx: %d\n", e->etype, e->emsg.ifidx));
+			/* All P2P device address related events comes on primary interface since
+			 * there is no corresponding bsscfg for P2P interface. Map it to p2p0
+			 * interface.
+			 */
+#if defined(WL_CFG80211_P2P_DEV_IF)
+#ifdef P2PONEINT
+			if ((wl_is_p2p_event(e) == TRUE) && (cfg->p2p_wdev)) {
+#else
+			if (WL_IS_P2P_DEV_EVENT(e) && (cfg->p2p_wdev)) {
+#endif
+				cfgdev = bcmcfg_to_p2p_wdev(cfg);
+			} else {
+				struct net_device *ndev = NULL;
 
-			if (e->emsg.ifidx > WL_MAX_IFS) {
-				WL_ERR((" Event ifidx not in range. val:%d \n", e->emsg.ifidx));
-				goto fail;
+				ndev = dhd_idx2net((struct dhd_pub *)(cfg->pub), e->emsg.ifidx);
+				if (ndev)
+					cfgdev = ndev_to_wdev(ndev);
+#ifdef P2PONEINT
+				else if (e->etype == WLC_E_IF) {
+					wl_put_event(e);
+					DHD_OS_WAKE_UNLOCK(cfg->pub);
+					continue;
+				}
+
+				if (cfgdev == NULL) {
+					if (e->etype == WLC_E_IF)
+						cfgdev = bcmcfg_to_prmry_wdev(cfg);
+					else {
+						cfgdev = ndev_to_wdev(wl_to_p2p_bss_ndev(cfg,
+							P2PAPI_BSSCFG_CONNECTION));
+					}
+				}
+#endif
 			}
+#elif defined(WL_ENABLE_P2P_IF)
+			if (WL_IS_P2P_DEV_EVENT(e) && (cfg->p2p_net)) {
+				cfgdev = cfg->p2p_net;
+			} else {
+				cfgdev = dhd_idx2net((struct dhd_pub *)(cfg->pub),
+					e->emsg.ifidx);
+			}
+#endif /* WL_CFG80211_P2P_DEV_IF */
 
-			if (!(wdev = wl_get_wdev_by_bssidx(cfg, e->emsg.bsscfgidx))) {
-				/* For WLC_E_IF would be handled by wl_host_event */
-				if (e->etype != WLC_E_IF)
-					WL_ERR(("No wdev corresponding to bssidx: 0x%x found!"
-						" Ignoring event.\n", e->emsg.bsscfgidx));
-			} else if (e->etype < WLC_E_LAST && cfg->evt_handler[e->etype]) {
+			if (!cfgdev) {
+#if defined(WL_CFG80211_P2P_DEV_IF)
+				cfgdev = bcmcfg_to_prmry_wdev(cfg);
+#elif defined(WL_ENABLE_P2P_IF)
+				cfgdev = bcmcfg_to_prmry_ndev(cfg);
+#endif /* WL_CFG80211_P2P_DEV_IF */
+			}
+			if (e->etype < WLC_E_LAST && cfg->evt_handler[e->etype]) {
 				dhd_pub_t *dhd = (struct dhd_pub *)(cfg->pub);
-				if (dhd->busstate == DHD_BUS_DOWN) {
+				if (dhd->busstate == DHD_BUS_DOWN)
 					WL_ERR((": BUS is DOWN.\n"));
-				} else
-					cfg->evt_handler[e->etype](cfg, wdev_to_cfgdev(wdev),
-						&e->emsg, e->edata);
+				else
+				cfg->evt_handler[e->etype] (cfg, cfgdev, &e->emsg, e->edata);
 			} else {
 				WL_DBG(("Unknown Event (%d): ignoring\n", e->etype));
 			}
-fail:
 			wl_put_event(e);
-			DHD_EVENT_WAKE_UNLOCK(cfg->pub);
 		}
+		DHD_OS_WAKE_UNLOCK(cfg->pub);
 	}
 	WL_ERR(("was terminated\n"));
 	complete_and_exit(&tsk->completed, 0);
