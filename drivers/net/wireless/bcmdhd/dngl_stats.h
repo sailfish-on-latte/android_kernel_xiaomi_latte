@@ -2,9 +2,8 @@
  * Common stats definitions for clients of dongle
  * ports
  *
- * Copyright (C) 1999-2015, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * Copyright (C) 1999-2016, Broadcom Corporation
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
@@ -23,7 +22,10 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dngl_stats.h 464743 2014-03-25 21:04:32Z $
+ *
+ * <<Broadcom-WL-IPTag/Open:>>
+ *
+ * $Id: dngl_stats.h 610621 2016-01-07 11:06:46Z $
  */
 
 #ifndef _dngl_stats_h_
@@ -44,6 +46,7 @@ typedef struct {
 	unsigned long   multicast;      /* multicast packets received */
 } dngl_stats_t;
 
+#ifdef LINKSTAT_SUPPORT
 typedef int32 wifi_radio;
 typedef int32 wifi_channel;
 typedef int32 wifi_rssi;
@@ -61,35 +64,41 @@ typedef enum wifi_channel_width {
 } wifi_channel_width_t;
 
 typedef enum {
-    WIFI_DISCONNECTED = 0,
-    WIFI_AUTHENTICATING = 1,
-    WIFI_ASSOCIATING = 2,
-    WIFI_ASSOCIATED = 3,
-    WIFI_EAPOL_STARTED = 4,   // if done by firmware/driver
-    WIFI_EAPOL_COMPLETED = 5, // if done by firmware/driver
+	WIFI_DISCONNECTED = 0,
+	WIFI_AUTHENTICATING = 1,
+	WIFI_ASSOCIATING = 2,
+	WIFI_ASSOCIATED = 3,
+	WIFI_EAPOL_STARTED = 4,   /* if done by firmware/driver */
+	WIFI_EAPOL_COMPLETED = 5, /* if done by firmware/driver */
 } wifi_connection_state;
 
 typedef enum {
-    WIFI_ROAMING_IDLE = 0,
-    WIFI_ROAMING_ACTIVE = 1,
+	WIFI_ROAMING_IDLE = 0,
+	WIFI_ROAMING_ACTIVE = 1
 } wifi_roam_state;
 
 typedef enum {
-    WIFI_INTERFACE_STA = 0,
-    WIFI_INTERFACE_SOFTAP = 1,
-    WIFI_INTERFACE_IBSS = 2,
-    WIFI_INTERFACE_P2P_CLIENT = 3,
-    WIFI_INTERFACE_P2P_GO = 4,
-    WIFI_INTERFACE_NAN = 5,
-    WIFI_INTERFACE_MESH = 6,
- } wifi_interface_mode;
+	WIFI_INTERFACE_STA = 0,
+	WIFI_INTERFACE_SOFTAP = 1,
+	WIFI_INTERFACE_IBSS = 2,
+	WIFI_INTERFACE_P2P_CLIENT = 3,
+	WIFI_INTERFACE_P2P_GO = 4,
+	WIFI_INTERFACE_NAN = 5,
+	WIFI_INTERFACE_MESH = 6
+} wifi_interface_mode;
 
-#define WIFI_CAPABILITY_QOS          0x00000001     // set for QOS association
-#define WIFI_CAPABILITY_PROTECTED    0x00000002     // set for protected association (802.11 beacon frame control protected bit set)
-#define WIFI_CAPABILITY_INTERWORKING 0x00000004     // set if 802.11 Extended Capabilities element interworking bit is set
-#define WIFI_CAPABILITY_HS20         0x00000008     // set for HS20 association
-#define WIFI_CAPABILITY_SSID_UTF8    0x00000010     // set is 802.11 Extended Capabilities element UTF-8 SSID bit is set
-#define WIFI_CAPABILITY_COUNTRY      0x00000020     // set is 802.11 Country Element is present
+#define WIFI_CAPABILITY_QOS          0x00000001     /* set for QOS association */
+#define WIFI_CAPABILITY_PROTECTED    0x00000002     /* set for protected association (802.11
+						     * beacon frame control protected bit set)
+						     */
+#define WIFI_CAPABILITY_INTERWORKING 0x00000004     /* set if 802.11 Extended Capabilities
+						     * element interworking bit is set
+						     */
+#define WIFI_CAPABILITY_HS20         0x00000008     /* set for HS20 association */
+#define WIFI_CAPABILITY_SSID_UTF8    0x00000010     /* set is 802.11 Extended Capabilities
+						     * element UTF-8 SSID bit is set
+						     */
+#define WIFI_CAPABILITY_COUNTRY      0x00000020     /* set is 802.11 Country Element is present */
 
 typedef struct {
 	wifi_interface_mode mode;     /* interface mode */
@@ -107,34 +116,45 @@ typedef wifi_interface_info *wifi_interface_handle;
 
 /* channel information */
 typedef struct {
-   wifi_channel_width_t width;   // channel width (20, 40, 80, 80+80, 160)
-   wifi_channel center_freq;   // primary 20 MHz channel
-   wifi_channel center_freq0;  // center frequency (MHz) first segment
-   wifi_channel center_freq1;  // center frequency (MHz) second segment
+	wifi_channel_width_t width;   /* channel width (20, 40, 80, 80+80, 160) */
+	wifi_channel center_freq;   /* primary 20 MHz channel */
+	wifi_channel center_freq0;  /* center frequency (MHz) first segment */
+	wifi_channel center_freq1;  /* center frequency (MHz) second segment */
 } wifi_channel_info;
 
 /* wifi rate */
 typedef struct {
-	uint32 preamble;   /* 0: OFDM, 1:CCK, 2:HT 3:VHT 4..7 reserved */
+	uint32 preamble;	/* 0: OFDM, 1:CCK, 2:HT 3:VHT 4..7 reserved */
 	uint32 nss;		/* 0:1x1, 1:2x2, 3:3x3, 4:4x4 */
 	uint32 bw;		/* 0:20MHz, 1:40Mhz, 2:80Mhz, 3:160Mhz */
-	uint32 rateMcsIdx; /* OFDM/CCK rate code would be as per ieee std
-			    * in the units of 0.5mbps
-			    */
-			/* HT/VHT it would be mcs index */
-	uint32 reserved;   /* reserved */
-	uint32 bitrate;    /* units of 100 Kbps */
+	uint32 rateMcsIdx;	/* OFDM/CCK rate code would be as per ieee std
+				 * in the units of 0.5mbps
+				 */
+				/* HT/VHT it would be mcs index */
+	uint32 reserved;	/* reserved */
+	uint32 bitrate;		/* units of 100 Kbps */
+} wifi_rate_v2;
+
+typedef struct {
+	uint32 preamble   :3;   /* 0: OFDM, 1:CCK, 2:HT 3:VHT 4..7 reserved */
+	uint32 nss        :2;   /* 0:1x1, 1:2x2, 3:3x3, 4:4x4 */
+	uint32 bw         :3;   /* 0:20MHz, 1:40Mhz, 2:80Mhz, 3:160Mhz */
+	uint32 rateMcsIdx :8;   /* OFDM/CCK rate code would be as per ieee std
+				 * in the units of 0.5mbps HT/VHT it would be mcs index
+				 */
+	uint32 reserved  :16;   /* reserved */
+	uint32 bitrate;         /* units of 100 Kbps */
 } wifi_rate;
 
 /* channel statistics */
 typedef struct {
 	wifi_channel_info channel;  /* channel */
 	uint32 on_time;		/* msecs the radio is awake (32 bits number
-				* accruing over time)
-				*/
-	uint32 cca_busy_time;          /* msecs the CCA register is busy (32 bits number
-					* accruing over time)
-					*/
+				 * accruing over time)
+				 */
+	uint32 cca_busy_time;	/* msecs the CCA register is busy (32 bits number
+				 * accruing over time)
+				 */
 } wifi_channel_stat;
 
 /* radio statistics */
@@ -177,38 +197,46 @@ typedef struct {
 
 /* per rate statistics */
 typedef struct {
-	struct {
-		uint16 version;
-		uint16 length;
-	};
-	uint32 tx_mpdu;        /* number of successfully transmitted data pkts (ACK rcvd) */
-	uint32 rx_mpdu;        /* number of received data pkts */
-	uint32 mpdu_lost;      /* number of data packet losses (no ACK) */
-	uint32 retries;        /* total number of data pkt retries */
-	uint32 retries_short;  /* number of short data pkt retries */
-	uint32 retries_long;   /* number of long data pkt retries */
-	wifi_rate rate;     /* rate information */
+	wifi_rate rate;
+	uint32 tx_mpdu;
+	uint32 rx_mpdu;
+	uint32 mpdu_lost;
+	uint32 retries;
+	uint32 retries_short;
+	uint32 retries_long;
 } wifi_rate_stat;
+
+typedef struct {
+	uint16 version;
+	uint16 length;
+	uint32 tx_mpdu;
+	uint32 rx_mpdu;
+	uint32 mpdu_lost;
+	uint32 retries;
+	uint32 retries_short;
+	uint32 retries_long;
+	wifi_rate_v2 rate;
+} wifi_rate_stat_v2;
 
 /* access categories */
 typedef enum {
-   WIFI_AC_VO  = 0,
-   WIFI_AC_VI  = 1,
-   WIFI_AC_BE  = 2,
-   WIFI_AC_BK  = 3,
-   WIFI_AC_MAX = 4,
+	WIFI_AC_VO  = 0,
+	WIFI_AC_VI  = 1,
+	WIFI_AC_BE  = 2,
+	WIFI_AC_BK  = 3,
+	WIFI_AC_MAX = 4
 } wifi_traffic_ac;
 
 /* wifi peer type */
 typedef enum
 {
-   WIFI_PEER_STA,
-   WIFI_PEER_AP,
-   WIFI_PEER_P2P_GO,
-   WIFI_PEER_P2P_CLIENT,
-   WIFI_PEER_NAN,
-   WIFI_PEER_TDLS,
-   WIFI_PEER_INVALID,
+	WIFI_PEER_STA,
+	WIFI_PEER_AP,
+	WIFI_PEER_P2P_GO,
+	WIFI_PEER_P2P_CLIENT,
+	WIFI_PEER_NAN,
+	WIFI_PEER_TDLS,
+	WIFI_PEER_INVALID
 } wifi_peer_type;
 
 /* per peer statistics */
@@ -253,6 +281,23 @@ typedef struct {
 	uint32 beacon_rx;                     /* access point beacon received count from
 					       * connected AP
 					       */
+	uint64 average_tsf_offset;	/* average beacon offset encountered (beacon_TSF - TBTT)
+					 * The average_tsf_offset field is used so as to calculate
+					 * the typical beacon contention time on the channel as well
+					 * may be used to debug beacon synchronization and related
+					 * power consumption issue
+					 */
+	uint32 leaky_ap_detected;	/* indicate that this AP typically leaks packets beyond
+					 * the driver guard time.
+					 */
+	uint32 leaky_ap_avg_num_frames_leaked;	/* average number of frame leaked by AP after
+						 * frame with PM bit set was ACK'ed by AP
+						 */
+	uint32 leaky_ap_guard_time;	/* guard time currently in force (when implementing IEEE
+					 * power management based on frame control PM bit), How long
+					 * driver waits before shutting down the radio and after
+					 * receiving an ACK for a data frame with PM bit set)
+					 */
 	uint32 mgmt_rx;                       /* access point mgmt frames received count from
 					       * connected AP (including Beacon)
 					       */
@@ -271,5 +316,6 @@ typedef struct {
 	uint32 num_peers;                        /* number of peers */
 	wifi_peer_info peer_info[1];           /* per peer statistics */
 } wifi_iface_stat;
+#endif /* LINKSTAT_SUPPORT */
 
 #endif /* _dngl_stats_h_ */

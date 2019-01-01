@@ -1,9 +1,8 @@
 /*
  * BCMSDH Function Driver for the native SDIO/MMC driver in the Linux Kernel
  *
- * Copyright (C) 1999-2015, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * Copyright (C) 1999-2016, Broadcom Corporation
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
@@ -22,7 +21,10 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: bcmsdh_sdmmc.c 459285 2014-03-03 02:54:39Z $
+ *
+ * <<Broadcom-WL-IPTag/Proprietary,Open:>>
+ *
+ * $Id: bcmsdh_sdmmc.c 579798 2015-08-17 07:00:05Z $
  */
 #include <typedefs.h>
 
@@ -67,10 +69,16 @@ extern int sdio_reset_comm(struct mmc_card *card);
 #define CUSTOM_SDIO_F2_BLKSIZE		DEFAULT_SDIO_F2_BLKSIZE
 #endif
 
+#define DEFAULT_SDIO_F1_BLKSIZE		64
+#ifndef CUSTOM_SDIO_F1_BLKSIZE
+#define CUSTOM_SDIO_F1_BLKSIZE		DEFAULT_SDIO_F1_BLKSIZE
+#endif
+
 #define MAX_IO_RW_EXTENDED_BLK		511
 
 uint sd_sdmode = SDIOH_MODE_SD4;	/* Use SD4 mode by default */
 uint sd_f2_blocksize = CUSTOM_SDIO_F2_BLKSIZE;
+uint sd_f1_blocksize = CUSTOM_SDIO_F1_BLKSIZE;
 uint sd_divisor = 2;			/* Default 48MHz/2 = 24MHz */
 
 uint sd_power = 1;		/* Default to SD Slot powered ON */
@@ -168,8 +176,8 @@ sdioh_attach(osl_t *osh, struct sdio_func *func)
 	sdio_set_drvdata(sd->func[1], sd);
 
 	sdio_claim_host(sd->func[1]);
-	sd->client_block_size[1] = 64;
-	err_ret = sdio_set_block_size(sd->func[1], 64);
+	sd->client_block_size[1] = sd_f1_blocksize;
+	err_ret = sdio_set_block_size(sd->func[1], sd_f1_blocksize);
 	sdio_release_host(sd->func[1]);
 	if (err_ret) {
 		sd_err(("bcmsdh_sdmmc: Failed to set F1 blocksize(%d)\n", err_ret));
@@ -1156,7 +1164,7 @@ sdioh_request_buffer(sdioh_info_t *sd, uint pio_dma, uint fix_inc, uint write, u
 	if (((ulong)buffer & DMA_ALIGN_MASK) == 0 && (buf_len & DMA_ALIGN_MASK) == 0)
 		return sdioh_buffer_tofrom_bus(sd, fix_inc, write, func, addr, buffer, buf_len);
 
-	sd_err(("%s: [%d] doing memory copy buf=%p, len=%d\n",
+	sd_trace(("%s: [%d] doing memory copy buf=%p, len=%d\n",
 		__FUNCTION__, write, buffer, buf_len));
 
 	/* otherwise, a memory copy is needed as the input buffer is not aligned */
@@ -1328,6 +1336,15 @@ sdioh_start(sdioh_info_t *sd, int stage)
 			and enable the fucntion 1 for in preparation for
 			downloading the code
 		*/
+		/* sdio_reset_comm() - has been fixed in latest kernel/msm.git for Linux
+		   2.6.27. The implementation prior to that is buggy, and needs broadcom's
+		   patch for it
+		*/
+		if ((ret = sdio_reset_comm(sd->func[0]->card))) {
+			sd_err(("%s Failed, error = %d\n", __FUNCTION__, ret));
+			return ret;
+		}
+		else {
 			sd->num_funcs = 2;
 			sd->sd_blockmode = TRUE;
 			sd->use_client_ints = TRUE;
@@ -1364,6 +1381,7 @@ sdioh_start(sdioh_info_t *sd, int stage)
 			}
 
 			sdioh_sdmmc_card_enablefuncs(sd);
+			}
 		} else {
 #if !defined(OOB_INTR_ONLY)
 			sdio_claim_host(sd->func[0]);

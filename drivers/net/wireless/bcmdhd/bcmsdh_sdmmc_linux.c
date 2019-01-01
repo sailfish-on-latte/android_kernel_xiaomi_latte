@@ -1,9 +1,8 @@
 /*
  * BCMSDH Function Driver for the native SDIO/MMC driver in the Linux Kernel
  *
- * Copyright (C) 1999-2015, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * Copyright (C) 1999-2016, Broadcom Corporation
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
@@ -22,7 +21,10 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: bcmsdh_sdmmc_linux.c 434777 2013-11-07 09:30:27Z $
+ *
+ * <<Broadcom-WL-IPTag/Proprietary,Open:>>
+ *
+ * $Id: bcmsdh_sdmmc_linux.c 528293 2015-01-21 23:18:59Z $
  */
 
 #include <typedefs.h>
@@ -38,7 +40,6 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/sdio_ids.h>
-#include <linux/mmc/sdhci.h>
 #include <dhd_linux.h>
 #include <bcmsdh_sdmmc.h>
 #include <dhd_dbg.h>
@@ -108,10 +109,9 @@ static int sdioh_probe(struct sdio_func *func)
 
 	sd_err(("bus num (host idx)=%d, slot num (rca)=%d\n", host_idx, rca));
 	adapter = dhd_wifi_platform_get_adapter(SDIO_BUS, host_idx, rca);
-	if (adapter  != NULL) {
+	if (adapter  != NULL)
 		sd_err(("found adapter info '%s'\n", adapter->name));
-		adapter->sdio_func = func;
-	} else
+	else
 		sd_err(("can't find adapter info for this chip\n"));
 
 #ifdef WL_CFG80211
@@ -204,17 +204,11 @@ static void bcmsdh_sdmmc_remove(struct sdio_func *func)
 
 /* devices we support, null terminated */
 static const struct sdio_device_id bcmsdh_sdmmc_ids[] = {
-	{ SDIO_DEVICE(SDIO_VENDOR_ID_BROADCOM, SDIO_DEVICE_ID_BROADCOM_DEFAULT) },
-	{ SDIO_DEVICE(SDIO_VENDOR_ID_BROADCOM, SDIO_DEVICE_ID_BROADCOM_4325_SDGWB) },
-	{ SDIO_DEVICE(SDIO_VENDOR_ID_BROADCOM, SDIO_DEVICE_ID_BROADCOM_4325) },
-	{ SDIO_DEVICE(SDIO_VENDOR_ID_BROADCOM, SDIO_DEVICE_ID_BROADCOM_4329) },
-	{ SDIO_DEVICE(SDIO_VENDOR_ID_BROADCOM, SDIO_DEVICE_ID_BROADCOM_4319) },
-	{ SDIO_DEVICE(SDIO_VENDOR_ID_BROADCOM, SDIO_DEVICE_ID_BROADCOM_4330) },
-	{ SDIO_DEVICE(SDIO_VENDOR_ID_BROADCOM, SDIO_DEVICE_ID_BROADCOM_4334) },
-	{ SDIO_DEVICE(SDIO_VENDOR_ID_BROADCOM, SDIO_DEVICE_ID_BROADCOM_4324) },
-	{ SDIO_DEVICE(SDIO_VENDOR_ID_BROADCOM, SDIO_DEVICE_ID_BROADCOM_43239) },
-	{ SDIO_DEVICE_CLASS(SDIO_CLASS_NONE)		},
-	{ /* end: all zeroes */				},
+	{ 	.class	= SDIO_CLASS_NONE,
+		.vendor	= SDIO_VENDOR_ID_BROADCOM,
+		.device	= SDIO_ANY_ID
+	},
+	{ /* end: all zeroes */                         },
 };
 
 MODULE_DEVICE_TABLE(sdio, bcmsdh_sdmmc_ids);
@@ -231,14 +225,18 @@ static int bcmsdh_sdmmc_suspend(struct device *pdev)
 	if (func->num != 2)
 		return 0;
 
+	dhd_mmc_suspend = TRUE;
 	sdioh = sdio_get_drvdata(func);
 	err = bcmsdh_suspend(sdioh->bcmsdh);
-	if (err)
+	if (err) {
+		dhd_mmc_suspend = FALSE;
 		return err;
+	}
 
 	sdio_flags = sdio_get_host_pm_caps(func);
 	if (!(sdio_flags & MMC_PM_KEEP_POWER)) {
-		pr_err("%s: can't keep power while host is suspended\n", __FUNCTION__);
+		sd_err(("%s: can't keep power while host is suspended\n", __FUNCTION__));
+		dhd_mmc_suspend = FALSE;
 		return  -EINVAL;
 	}
 
@@ -246,12 +244,24 @@ static int bcmsdh_sdmmc_suspend(struct device *pdev)
 	err = sdio_set_host_pm_flags(func, MMC_PM_KEEP_POWER);
 	if (err) {
 		sd_err(("%s: error while trying to keep power\n", __FUNCTION__));
+		dhd_mmc_suspend = FALSE;
 		return err;
 	}
+
+#ifdef CONFIG_ARCH_QCOM
+	/* For QCOM sdhci-msm enable wakeup sdio irq when suspending */
+	err = sdio_set_host_pm_flags(func, MMC_PM_WAKE_SDIO_IRQ);
+	if (err) {
+		sd_err(("%s: error while setting up sdiowakeup interrupt\n",
+				__func__));
+		dhd_mmc_suspend = FALSE;
+		return err;
+	}
+#endif
+
 #if defined(OOB_INTR_ONLY)
 	bcmsdh_oob_intr_set(sdioh->bcmsdh, FALSE);
 #endif 
-	dhd_mmc_suspend = TRUE;
 	smp_mb();
 
 	return 0;
@@ -271,8 +281,6 @@ static int bcmsdh_sdmmc_resume(struct device *pdev)
 #if defined(OOB_INTR_ONLY)
 	bcmsdh_resume(sdioh->bcmsdh);
 #endif 
-	if (func->card && func->card->host)
-		func->card->host->pm_flags &= ~MMC_PM_KEEP_POWER;
 
 	smp_mb();
 	return 0;

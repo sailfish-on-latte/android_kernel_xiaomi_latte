@@ -1,9 +1,8 @@
 /*
  * pcicfg.h: PCI configuration constants and structures.
  *
- * Copyright (C) 1999-2015, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * Copyright (C) 1999-2016, Broadcom Corporation
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
@@ -22,7 +21,10 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: pcicfg.h 506084 2014-10-02 15:34:59Z $
+ *
+ * <<Broadcom-WL-IPTag/Open:>>
+ *
+ * $Id: pcicfg.h 514727 2014-11-12 03:02:48Z $
  */
 
 #ifndef	_h_pcicfg_
@@ -150,8 +152,8 @@ typedef struct _pciconfig_cap_pcie {
 /* Header to define the PCIE specific capabilities in the extended config space */
 typedef struct _pcie_enhanced_caphdr {
 	uint16	capID;
-	uint16	cap_ver:4;
-	uint16	next_ptr:12;
+	uint16	cap_ver : 4;
+	uint16	next_ptr : 12;
 } pcie_enhanced_caphdr;
 
 
@@ -169,11 +171,7 @@ typedef struct _pcie_enhanced_caphdr {
 #define	PCI_GPIO_IN		0xb0	/* pci config space gpio input (>=rev3) */
 #define	PCI_GPIO_OUT		0xb4	/* pci config space gpio output (>=rev3) */
 #define	PCI_GPIO_OUTEN		0xb8	/* pci config space gpio output enable (>=rev3) */
-#define PCI_LINK_CTRL		0xbc	/* PCI link control register */
-#define PCI_DEV_STAT_CTRL2	0xd4	/* PCI device status control 2 register */
-#define PCIE_LTR_MAX_SNOOP	0x1b4	/* PCIE LTRMaxSnoopLatency */
-#define PCI_L1SS_CTRL		0x248	/* The L1 PM Substates Control register */
-#define	PCI_L1SS_CTRL2		0x24c	/* The L1 PM Substates Control 2 register */
+#define	PCI_L1SS_CTRL2		0x24c	/* The L1 PM Substates Control register */
 
 /* Private Registers */
 #define	PCI_STAT_CTRL		0xa80
@@ -215,6 +213,7 @@ typedef struct _pcie_enhanced_caphdr {
 #define	PCI_16KB0_PCIREGS_OFFSET (8 * 1024)	/* bar0 + 8K accesses pci/pcie core registers */
 #define	PCI_16KB0_CCREGS_OFFSET	(12 * 1024)	/* bar0 + 12K accesses chipc core registers */
 #define PCI_16KBB0_WINSZ	(16 * 1024)	/* bar0 window size */
+#define PCI_SECOND_BAR0_OFFSET	(16 * 1024)	/* secondary  bar 0 window */
 
 
 /* Header types */
@@ -247,14 +246,14 @@ typedef enum {
 #define write_pci_cfg_byte(a, val) do { \
 	uint32 tmpval; \
 	tmpval = (OSL_PCI_READ_CONFIG(osh, DWORD_ALIGN(a), 4) & ~0xFF << BYTE_POS(a)) | \
-		val << BYTE_POS(a); \
+	        val << BYTE_POS(a); \
 	OSL_PCI_WRITE_CONFIG(osh, DWORD_ALIGN(a), 4, tmpval); \
 	} while (0)
 
 #define write_pci_cfg_word(a, val) do { \
 	uint32 tmpval; \
 	tmpval = (OSL_PCI_READ_CONFIG(osh, DWORD_ALIGN(a), 4) & ~0xFFFF << WORD_POS(a)) | \
-		val << WORD_POS(a); \
+	        val << WORD_POS(a); \
 	OSL_PCI_WRITE_CONFIG(osh, DWORD_ALIGN(a), 4, tmpval); \
 	} while (0)
 

@@ -1,15 +1,14 @@
 /*
  * IP Packet Parser Module.
  *
- * Copyright (C) 1999-2015, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * Copyright (C) 1999-2016, Broadcom Corporation
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- *
+ * 
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -17,12 +16,15 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- *
+ * 
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_ip.c 468932 2014-04-09 06:58:15Z $
+ *
+ * <<Broadcom-WL-IPTag/Open:>>
+ *
+ * $Id: dhd_ip.c 575241 2015-07-29 09:17:04Z $
  */
 #include <typedefs.h>
 #include <osl.h>
@@ -117,74 +119,10 @@ pkt_frag_t pkt_frag_info(osl_t *osh, void *p)
 	}
 }
 
-bool pkt_is_dhcp(osl_t *osh, void *p)
-{
-	uint8 *frame;
-	int length;
-	uint8 *pt;			/* Pointer to type field */
-	uint16 ethertype;
-	struct ipv4_hdr *iph;		/* IP frame pointer */
-	int ipl;			/* IP frame length */
-	uint16 src_port;
-
-	ASSERT(osh && p);
-
-	frame = PKTDATA(osh, p);
-	length = PKTLEN(osh, p);
-
-	/* Process Ethernet II or SNAP-encapsulated 802.3 frames */
-	if (length < ETHER_HDR_LEN) {
-		DHD_INFO(("%s: short eth frame (%d)\n", __FUNCTION__, length));
-		return FALSE;
-	} else if (ntoh16(*(uint16 *)(frame + ETHER_TYPE_OFFSET)) >= ETHER_TYPE_MIN) {
-		/* Frame is Ethernet II */
-		pt = frame + ETHER_TYPE_OFFSET;
-	} else if (length >= ETHER_HDR_LEN + SNAP_HDR_LEN + ETHER_TYPE_LEN &&
-	           !bcmp(llc_snap_hdr, frame + ETHER_HDR_LEN, SNAP_HDR_LEN)) {
-		pt = frame + ETHER_HDR_LEN + SNAP_HDR_LEN;
-	} else {
-		DHD_INFO(("%s: non-SNAP 802.3 frame\n", __FUNCTION__));
-		return FALSE;
-	}
-
-	ethertype = ntoh16(*(uint16 *)pt);
-
-	/* Skip VLAN tag, if any */
-	if (ethertype == ETHER_TYPE_8021Q) {
-		pt += VLAN_TAG_LEN;
-
-		if (pt + ETHER_TYPE_LEN > frame + length) {
-			DHD_INFO(("%s: short VLAN frame (%d)\n", __FUNCTION__, length));
-			return FALSE;
-		}
-
-		ethertype = ntoh16(*(uint16 *)pt);
-	}
-
-	if (ethertype != ETHER_TYPE_IP) {
-		DHD_INFO(("%s: non-IP frame (ethertype 0x%x, length %d)\n",
-			__FUNCTION__, ethertype, length));
-		return FALSE;
-	}
-
-	iph = (struct ipv4_hdr *)(pt + ETHER_TYPE_LEN);
-	ipl = (uint)(length - (pt + ETHER_TYPE_LEN - frame));
-
-	/* We support IPv4 only */
-	if ((ipl < (IPV4_OPTIONS_OFFSET + 2)) || (IP_VER(iph) != IP_VER_4)) {
-		DHD_INFO(("%s: short frame (%d) or non-IPv4\n", __FUNCTION__, ipl));
-		return FALSE;
-	}
-
-	src_port = ntoh16(*(uint16 *)(pt + ETHER_TYPE_LEN + IPV4_OPTIONS_OFFSET));
-
-	return (src_port == 0x43 || src_port == 0x44);
-}
-
 #ifdef DHDTCPACK_SUPPRESS
 
 typedef struct {
-	void *pkt_in_q;			/* TCP ACK packet that is already in txq or DelayQ */
+	void *pkt_in_q;		/* TCP ACK packet that is already in txq or DelayQ */
 	void *pkt_ether_hdr;	/* Ethernet header pointer of pkt_in_q */
 	int ifidx;
 	uint8 supp_cnt;
@@ -357,19 +295,27 @@ static void dhd_tcpack_send(ulong data)
 	tcpack_info_t *cur_tbl = (tcpack_info_t *)data;
 	dhd_pub_t *dhdp;
 	int ifidx;
-	void *pkt;
+	void* pkt;
 	unsigned long flags;
 
-	if (!cur_tbl)
+	if (!cur_tbl) {
 		return;
+	}
 
 	dhdp = cur_tbl->dhdp;
-	if (!dhdp)
+	if (!dhdp) {
 		return;
+	}
 
 	flags = dhd_os_tcpacklock(dhdp);
 
 	tcpack_sup_mod = dhdp->tcpack_sup_module;
+	if (!tcpack_sup_mod) {
+		DHD_ERROR(("%s %d: tcpack suppress module NULL!!\n",
+			__FUNCTION__, __LINE__));
+		dhd_os_tcpackunlock(dhdp, flags);
+		return;
+	}
 	pkt = cur_tbl->pkt_in_q;
 	ifidx = cur_tbl->ifidx;
 	if (!pkt) {
@@ -467,9 +413,10 @@ int dhd_tcpack_suppress_set(dhd_pub_t *dhdp, uint8 mode)
 		int i;
 		tcpack_sup_module_t *tcpack_sup_mod =
 			(tcpack_sup_module_t *)dhdp->tcpack_sup_module;
-		dhdp->tcpack_sup_ratio = TCPACK_SUPP_RATIO;
-		dhdp->tcpack_sup_delay = TCPACK_DELAY_TIME;
-		for (i = 0; i < TCPACK_INFO_MAXNUM; i++) {
+		dhdp->tcpack_sup_ratio = CUSTOM_TCPACK_SUPP_RATIO;
+		dhdp->tcpack_sup_delay = CUSTOM_TCPACK_DELAY_TIME;
+		for (i = 0; i < TCPACK_INFO_MAXNUM; i++)
+		{
 			tcpack_sup_mod->tcpack_info_tbl[i].dhdp = dhdp;
 			init_timer(&tcpack_sup_mod->tcpack_info_tbl[i].timer);
 			tcpack_sup_mod->tcpack_info_tbl[i].timer.data =
@@ -522,7 +469,7 @@ dhd_tcpack_info_tbl_clean(dhd_pub_t *dhdp)
 
 	if (dhdp->tcpack_sup_mode == TCPACK_SUP_HOLD) {
 		for (i = 0; i < TCPACK_INFO_MAXNUM; i++) {
-			del_timer(&tcpack_sup_mod->tcpack_info_tbl[i].timer);
+			del_timer_sync(&tcpack_sup_mod->tcpack_info_tbl[i].timer);
 		}
 	}
 
@@ -1144,11 +1091,13 @@ dhd_tcpack_hold(dhd_pub_t *dhdp, void *pkt, int ifidx)
 	bool hold = FALSE;
 	unsigned long flags;
 
-	if (dhdp->tcpack_sup_mode != TCPACK_SUP_HOLD)
+	if (dhdp->tcpack_sup_mode != TCPACK_SUP_HOLD) {
 		goto exit;
+	}
 
-	if (dhdp->tcpack_sup_ratio == 1)
+	if (dhdp->tcpack_sup_ratio == 1) {
 		goto exit;
+	}
 
 	new_ether_hdr = PKTDATA(dhdp->osh, pkt);
 	cur_framelen = PKTLEN(dhdp->osh, pkt);
@@ -1237,9 +1186,9 @@ dhd_tcpack_hold(dhd_pub_t *dhdp, void *pkt, int ifidx)
 		uint32 old_tcpack_num;	/* TCP ACK number of old TCPACK packet in Q */
 
 		if ((oldpkt = tcpack_info_tbl[i].pkt_in_q) == NULL) {
-			if (free_slot == TCPACK_INFO_MAXNUM)
+			if (free_slot == TCPACK_INFO_MAXNUM) {
 				free_slot = i;
-
+			}
 			continue;
 		}
 
@@ -1288,14 +1237,14 @@ dhd_tcpack_hold(dhd_pub_t *dhdp, void *pkt, int ifidx)
 				tcpack_info_tbl[i].ifidx = ifidx;
 			}
 			PKTFREE(dhdp->osh, oldpkt, TRUE);
-		} else
+		} else {
 			PKTFREE(dhdp->osh, pkt, TRUE);
-
+		}
 		dhd_os_tcpackunlock(dhdp, flags);
 
-		if (!hold)
+		if (!hold) {
 			del_timer_sync(&tcpack_info_tbl[i].timer);
-
+		}
 		goto exit;
 	}
 

@@ -1,15 +1,14 @@
 /*
  * Linux cfg80211 vendor command/event handlers of DHD
  *
- * Copyright (C) 1999-2015, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * Copyright (C) 1999-2016, Broadcom Corporation
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- *
+ * 
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -17,12 +16,15 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- *
+ * 
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_cfg_vendor.c 514708 2014-11-11 23:59:07Z $
+ *
+ * <<Broadcom-WL-IPTag/Open:>>
+ *
+ * $Id: dhd_cfg_vendor.c 525516 2015-01-09 23:12:53Z $
  */
 
 #include <linux/vmalloc.h>
@@ -143,7 +145,7 @@ done:
 	return ret;
 }
 
-const struct wiphy_vendor_command dhd_cfgvendor_cmds[] = {
+const struct wiphy_vendor_command dhd_cfgvendor_cmds [] = {
 	{
 		{
 			.vendor_id = OUI_BRCM,

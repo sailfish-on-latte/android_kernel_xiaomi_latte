@@ -3,7 +3,7 @@
  *     export functions to client drivers
  *     abstract OS and BUS specific details of SDIO
  *
- * Copyright (C) 1999-2014, Broadcom Corporation
+ * Copyright (C) 1999-2016, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -23,7 +23,10 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: bcmsdh.h 450676 2014-01-22 22:45:13Z $
+ *
+ * <<Broadcom-WL-IPTag/Open:>>
+ *
+ * $Id: bcmsdh.h 572557 2015-07-20 07:12:29Z $
  */
 
 /**
@@ -62,6 +65,7 @@ struct bcmsdh_info
 	bool	regfail;	/* Save status of last reg_read/reg_write call */
 	uint32	sbwad;		/* Save backplane window address */
 	void	*os_cxt;        /* Pointer to per-OS private data */
+	bool	force_sbwad_calc; /* forces calculation of sbwad instead of using cached value */
 };
 
 /* Detach - freeup resources allocated in attach */
@@ -223,7 +227,7 @@ extern int bcmsdh_oob_intr_register(bcmsdh_info_t *bcmsdh, bcmsdh_cb_fn_t oob_ir
 	void* oob_irq_handler_context);
 extern void bcmsdh_oob_intr_unregister(bcmsdh_info_t *sdh);
 extern void bcmsdh_oob_intr_set(bcmsdh_info_t *sdh, bool enable);
-#endif
+#endif 
 extern void bcmsdh_dev_pm_stay_awake(bcmsdh_info_t *sdh);
 extern void bcmsdh_dev_relax(bcmsdh_info_t *sdh);
 extern bool bcmsdh_dev_pm_enabled(bcmsdh_info_t *sdh);
@@ -236,6 +240,9 @@ extern uint32 bcmsdh_get_dstatus(void *sdh);
 
 /* Function to return current window addr */
 extern uint32 bcmsdh_cur_sbwad(void *sdh);
+
+/* function to force sbwad calculation instead of using cached value */
+extern void bcmsdh_force_sbwad_calc(void *sdh, bool force);
 
 /* Function to pass chipid and rev to lower layers for controlling pr's */
 extern void bcmsdh_chipinfo(void *sdh, uint32 chip, uint32 chiprev);

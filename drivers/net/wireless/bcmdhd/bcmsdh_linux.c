@@ -1,9 +1,8 @@
 /*
  * SDIO access interface for drivers - linux specific (pci only)
  *
- * Copyright (C) 1999-2015, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * Copyright (C) 1999-2016, Broadcom Corporation
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
@@ -22,7 +21,10 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: bcmsdh_linux.c 538677 2015-03-04 13:24:38Z $
+ *
+ * <<Broadcom-WL-IPTag/Open:>>
+ *
+ * $Id: bcmsdh_linux.c 579798 2015-08-17 07:00:05Z $
  */
 
 /**
@@ -155,10 +157,10 @@ void* bcmsdh_probe(osl_t *osh, void *dev, void *sdioh, void *adapter_info, uint 
 	bcmsdh_osinfo->dev = dev;
 	osl_set_bus_handle(osh, bcmsdh);
 
-#if !defined(CONFIG_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36))
+#if !defined(CONFIG_HAS_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36))
 	if (dev && device_init_wakeup(dev, true) == 0)
 		bcmsdh_osinfo->dev_wake_enabled = TRUE;
-#endif /* !defined(CONFIG_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36)) */
+#endif /* !defined(CONFIG_HAS_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36)) */
 
 #if defined(OOB_INTR_ONLY)
 	spin_lock_init(&bcmsdh_osinfo->oob_irq_spinlock);
@@ -175,7 +177,7 @@ void* bcmsdh_probe(osl_t *osh, void *dev, void *sdioh, void *adapter_info, uint 
 	vendevid = bcmsdh_query_device(bcmsdh);
 	/* try to attach to the target device */
 	bcmsdh_osinfo->context = drvinfo.probe((vendevid >> 16), (vendevid & 0xFFFF), bus_num,
-		slot_num, 0, bus_type, (void *)regs, NULL, bcmsdh);
+		slot_num, 0, bus_type, (void *)regs, osh, bcmsdh);
 	if (bcmsdh_osinfo->context == NULL) {
 		SDLX_MSG(("%s: device attach failed\n", __FUNCTION__));
 		goto err;
@@ -196,11 +198,11 @@ int bcmsdh_remove(bcmsdh_info_t *bcmsdh)
 {
 	bcmsdh_os_info_t *bcmsdh_osinfo = bcmsdh->os_cxt;
 
-#if !defined(CONFIG_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36))
+#if !defined(CONFIG_HAS_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36))
 	if (bcmsdh_osinfo->dev)
 		device_init_wakeup(bcmsdh_osinfo->dev, false);
 	bcmsdh_osinfo->dev_wake_enabled = FALSE;
-#endif /* !defined(CONFIG_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36)) */
+#endif /* !defined(CONFIG_HAS_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36)) */
 
 	drvinfo.remove(bcmsdh_osinfo->context);
 	MFREE(bcmsdh->osh, bcmsdh->os_cxt, sizeof(bcmsdh_os_info_t));
@@ -271,18 +273,18 @@ bcmsdh_unregister(void)
 
 void bcmsdh_dev_pm_stay_awake(bcmsdh_info_t *bcmsdh)
 {
-#if !defined(CONFIG_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36))
+#if !defined(CONFIG_HAS_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36))
 	bcmsdh_os_info_t *bcmsdh_osinfo = bcmsdh->os_cxt;
 	pm_stay_awake(bcmsdh_osinfo->dev);
-#endif /* !defined(CONFIG_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36)) */
+#endif /* !defined(CONFIG_HAS_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36)) */
 }
 
 void bcmsdh_dev_relax(bcmsdh_info_t *bcmsdh)
 {
-#if !defined(CONFIG_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36))
+#if !defined(CONFIG_HAS_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36))
 	bcmsdh_os_info_t *bcmsdh_osinfo = bcmsdh->os_cxt;
 	pm_relax(bcmsdh_osinfo->dev);
-#endif /* !defined(CONFIG_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36)) */
+#endif /* !defined(CONFIG_HAS_WAKELOCK) && (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36)) */
 }
 
 bool bcmsdh_dev_pm_enabled(bcmsdh_info_t *bcmsdh)
@@ -400,6 +402,9 @@ module_param(sd_hiok, uint, 0);
 
 extern uint sd_f2_blocksize;
 module_param(sd_f2_blocksize, int, 0);
+
+extern uint sd_f1_blocksize;
+module_param(sd_f1_blocksize, int, 0);
 
 #ifdef BCMSDIOH_STD
 extern int sd_uhsimode;

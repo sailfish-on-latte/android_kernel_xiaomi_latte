@@ -1,9 +1,8 @@
 /*
  * Debug/trace/assert driver definitions for Dongle Host Driver.
  *
- * Copyright (C) 1999-2015, Broadcom Corporation
- * Copyright (C) 2016 XiaoMi, Inc.
- *
+ * Copyright (C) 1999-2016, Broadcom Corporation
+ * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
@@ -22,7 +21,10 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_dbg.h 424863 2013-09-19 20:06:14Z $
+ *
+ * <<Broadcom-WL-IPTag/Open:>>
+ *
+ * $Id: dhd_dbg.h 586164 2015-09-14 18:09:12Z $
  */
 
 #ifndef _dhd_dbg_
@@ -49,8 +51,13 @@
 #define DHD_ARPOE(args)		do {if (dhd_msg_level & DHD_ARPOE_VAL) printf args;} while (0)
 #define DHD_REORDER(args)	do {if (dhd_msg_level & DHD_REORDER_VAL) printf args;} while (0)
 #define DHD_PNO(args)		do {if (dhd_msg_level & DHD_PNO_VAL) printf args;} while (0)
+#define DHD_MSGTRACE_LOG(args)  do {if (dhd_msg_level & DHD_MSGTRACE_VAL) printf args;} while (0)
 #define DHD_FWLOG(args)		do {if (dhd_msg_level & DHD_FWLOG_VAL) printf args;} while (0)
 #define DHD_RTT(args)		do {if (dhd_msg_level & DHD_RTT_VAL) printf args;} while (0)
+#define DHD_DBGIF(args)		do {if (dhd_msg_level & DHD_DBGIF_VAL) printf args;} while (0)
+
+/* To dump MAC registers in case of fatal errors */
+#define DHD_DUMP	DHD_ERROR
 
 #define DHD_TRACE_HW4	DHD_TRACE
 #define DHD_INFO_HW4	DHD_INFO
@@ -73,7 +80,9 @@
 #define DHD_NOCHECKDIED_ON()	(dhd_msg_level & DHD_NOCHECKDIED_VAL)
 #define DHD_PNO_ON()		(dhd_msg_level & DHD_PNO_VAL)
 #define DHD_FWLOG_ON()		(dhd_msg_level & DHD_FWLOG_VAL)
+#define DHD_DBGIF_ON()		(dhd_msg_level & DHD_DBGIF_VAL)
 #define DHD_RTT_ON()		(dhd_msg_level & DHD_RTT_VAL)
+#define DHD_DBG_BCNRX_ON()	(dhd_msg_level & DHD_DBG_BCNRX_VAL)
 
 #else /* defined(BCMDBG) || defined(DHD_DEBUG) */
 
@@ -93,7 +102,10 @@
 #define DHD_ARPOE(args)
 #define DHD_REORDER(args)
 #define DHD_PNO(args)
+#define DHD_MSGTRACE_LOG(args)
 #define DHD_FWLOG(args)
+#define DHD_RTT(args)
+#define DHD_DBGIF(args)
 
 #define DHD_TRACE_HW4	DHD_TRACE
 #define DHD_INFO_HW4	DHD_INFO
@@ -116,6 +128,9 @@
 #define DHD_NOCHECKDIED_ON()	0
 #define DHD_PNO_ON()		0
 #define DHD_FWLOG_ON()		0
+#define DHD_DBGIF_ON()		0
+#define DHD_RTT_ON()		0
+#define DHD_DBG_BCNRX_ON()	0
 #endif 
 
 #define DHD_LOG(args)
