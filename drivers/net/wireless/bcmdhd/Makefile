@@ -27,12 +27,14 @@
 # Basic feature
 #####################
 
-DHDCFLAGS += -Wall -Wno-date-time -Wstrict-prototypes -Dlinux -DLINUX -DBCMDRIVER      \
-        -DBCMDONGLEHOST -DUNRELEASEDCHIP -DBCMDMA32 -DBCMFILEIMAGE      \
-        -DDHDTHREAD -DDHD_BCMEVENTS -DSHOW_EVENTS -DBCMDBG -DWLP2P      \
-        -DWIFI_ACT_FRAME -DARP_OFFLOAD_SUPPORT -DKEEP_ALIVE -DCSCAN     \
-        -DPKT_FILTER_SUPPORT -DEMBEDDED_PLATFORM -DPNO_SUPPORT          \
-        -DCONFIG_DTS -DCUSTOM_COUNTRY_CODE
+DHDCFLAGS += -Wall -Wstrict-prototypes -Dlinux -DLINUX -DBCMDRIVER            \
+	-DBCMDONGLEHOST -DUNRELEASEDCHIP -DBCMDMA32 -DBCMFILEIMAGE            \
+	-DDHDTHREAD -DSHOW_EVENTS -DBCMDBG -DWLP2P                            \
+	-DWIFI_ACT_FRAME -DARP_OFFLOAD_SUPPORT                                \
+	-DKEEP_ALIVE -DPKT_FILTER_SUPPORT                                     \
+	-DEMBEDDED_PLATFORM -DPNO_SUPPORT                                     \
+	-DDHD_DONOT_FORWARD_BCMEVENT_AS_NETWORK_PKT                           \
+	-DCUSTOMER_HW2 -DGET_CUSTOM_MAC_ENABLE -DUSE_RANDOM_MAC
 
 #####################
 # Bus Interface Type
@@ -248,7 +250,7 @@ ANDROID_OFILES := wl_cfgvendor.o dhd_rtt.o bcmxtlv.o bcm_app_utils.o
 # m: module type driver
 # y: built-in type driver
 ##########################
-DRIVER_TYPE ?= y
+DRIVER_TYPE ?= m
 
 #########################
 # Chip dependent feature
