@@ -117,6 +117,9 @@
 #endif
 #endif /* BCMWAPI_WPI */
 
+#define WL_IS_P2P_DEV_EVENT(e) ((e->emsg.ifidx == 0) && \
+		(e->emsg.bsscfgidx == P2PAPI_BSSCFG_DEVICE))
+
 #ifdef BCMWAPI_WPI
 #define IW_WSEC_ENABLED(wsec)   ((wsec) & (WEP_ENABLED | TKIP_ENABLED | AES_ENABLED | SMS4_ENABLED))
 #else /* BCMWAPI_WPI */
