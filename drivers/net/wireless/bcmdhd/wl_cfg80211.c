@@ -3,13 +3,13 @@
  *
  * Copyright (C) 1999-2016, Broadcom Corporation
  * Copyright (C) 2015 Sony Mobile Communications Inc.
- * 
+ *
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- * 
+ *
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -17,7 +17,7 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- * 
+ *
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
@@ -1508,7 +1508,7 @@ wl_cfg80211_add_virtual_iface(struct wiphy *wiphy,
 	s32 up = 1;
 	dhd_pub_t *dhd;
 	bool enabled;
-#endif 
+#endif
 #endif /* PROP_TXSTATUS_VSDB */
 
 	if (!cfg)
@@ -1517,7 +1517,7 @@ wl_cfg80211_add_virtual_iface(struct wiphy *wiphy,
 #ifdef PROP_TXSTATUS_VSDB
 #if defined(BCMSDIO)
 	dhd = (dhd_pub_t *)(cfg->pub);
-#endif 
+#endif
 #endif /* PROP_TXSTATUS_VSDB */
 
 	/* Use primary I/F for sending cmds down to firmware */
@@ -1598,7 +1598,7 @@ wl_cfg80211_add_virtual_iface(struct wiphy *wiphy,
 #if defined(BCMSDIO)
 		if (!dhd)
 			return ERR_PTR(-ENODEV);
-#endif 
+#endif
 #endif /* PROP_TXSTATUS_VSDB */
 		if (!cfg->p2p)
 			return ERR_PTR(-ENODEV);
@@ -1633,7 +1633,7 @@ wl_cfg80211_add_virtual_iface(struct wiphy *wiphy,
 			}
 			cfg->wlfc_on = true;
 		}
-#endif 
+#endif
 #endif /* PROP_TXSTATUS_VSDB */
 
 		/* Dual p2p doesn't support multiple P2PGO interfaces,
@@ -1808,7 +1808,7 @@ wl_cfg80211_add_virtual_iface(struct wiphy *wiphy,
 			dhd_wlfc_deinit(dhd);
 			cfg->wlfc_on = false;
 		}
-#endif 
+#endif
 #endif /* PROP_TXSTATUS_VSDB */
 		}
 	}
@@ -2163,7 +2163,7 @@ static s32 wl_cfg80211_handle_ifdel(struct bcm_cfg80211 *cfg, wl_if_event_info *
 #if defined(BCMSDIO)
 	dhd_pub_t *dhd =  (dhd_pub_t *)(cfg->pub);
 	bool enabled;
-#endif 
+#endif
 #endif /* PROP_TXSTATUS_VSDB */
 
 	bssidx = if_event_info->bssidx;
@@ -2200,7 +2200,7 @@ static s32 wl_cfg80211_handle_ifdel(struct bcm_cfg80211 *cfg, wl_if_event_info *
 			dhd_wlfc_deinit(dhd);
 			cfg->wlfc_on = false;
 		}
-#endif 
+#endif
 #endif /* PROP_TXSTATUS_VSDB */
 	}
 
@@ -4917,7 +4917,7 @@ wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev,
 	}
 #endif /* CUSTOM_SET_CPUCORE */
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
 	/* cfg80211 expects disconnect event from DHD to release wdev->current_bss */
 	cfg80211_disconnected(dev, reason_code, NULL, 0, false, GFP_KERNEL);
 #endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)) */
@@ -5624,7 +5624,7 @@ get_station_err:
 			/* Disconnect due to zero BSSID or error to get RSSI */
 			WL_ERR(("force cfg80211_disconnected: %d\n", err));
 			wl_clr_drv_status(cfg, CONNECTED, dev);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
 			cfg80211_disconnected(dev, 0, NULL, 0, false, GFP_KERNEL);
 #else
 			cfg80211_disconnected(dev, 0, NULL, 0, GFP_KERNEL);
@@ -7077,7 +7077,7 @@ wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
 	}
 	goto set_channel;
 #endif /* ((LINUX_VERSION >= VERSION(3, 8, 0) && !WL_COMPAT_WIRELESS) */
-#endif 
+#endif
 
 
 #ifdef WL11ULB
@@ -9157,7 +9157,7 @@ static s32 wl_setup_wiphy(struct wireless_dev *wdev, struct device *sdiofunc_dev
 		err = -ENODEV;
 		return err;
 	}
-#endif 
+#endif
 
 	wdev->wiphy =
 	    wiphy_new(&wl_cfg80211_ops, sizeof(struct bcm_cfg80211));
@@ -9261,7 +9261,7 @@ static s32 wl_setup_wiphy(struct wireless_dev *wdev, struct device *sdiofunc_dev
 		wdev->wiphy->flags |= WIPHY_FLAG_AP_PROBE_RESP_OFFLOAD;
 		wdev->wiphy->probe_resp_offload = 0;
 	}
-#endif 
+#endif
 #endif /* WL_SUPPORT_BACKPORTED_KPATCHES) || (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)) */
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 2, 0)) || defined(WL_COMPAT_WIRELESS)
@@ -9979,7 +9979,7 @@ wl_notify_connect_status(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 						WL_ERR(("WLC_DISASSOC error %d\n", err));
 						err = 0;
 					}
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
 					cfg80211_disconnected(ndev, reason, NULL, 0, false, GFP_KERNEL);
 #else
 					cfg80211_disconnected(ndev, reason, NULL, 0, GFP_KERNEL);
@@ -10323,7 +10323,7 @@ wl_check_pmstatus(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 			return err;
 		}
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
 		cfg80211_disconnected(ndev, reason, NULL, 0, false, GFP_KERNEL);
 #else
 		cfg80211_disconnected(ndev, reason, NULL, 0, GFP_KERNEL);
@@ -10785,7 +10785,7 @@ wl_notify_pfn_status(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 #ifndef WL_SCHED_SCAN
 	mutex_lock(&cfg->usr_sync);
 	/* TODO: Use cfg80211_sched_scan_results(wiphy); */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
 	cfg80211_disconnected(ndev, 0, NULL, 0, false, GFP_KERNEL);
 #else
 	cfg80211_disconnected(ndev, 0, NULL, 0, GFP_KERNEL );
@@ -12661,7 +12661,7 @@ static s32 wl_init_priv(struct bcm_cfg80211 *cfg)
 	cfg->vsdb_mode = false;
 #if defined(BCMSDIO)
 	cfg->wlfc_on = false;
-#endif 
+#endif
 	cfg->roam_flags |= WL_ROAM_OFF_ON_CONCURRENT;
 	cfg->disable_roam_event = false;
 	cfg->cfgdev_bssidx = -1;
@@ -12757,7 +12757,7 @@ static s32  wl_cfg80211_detach_p2p(void)
 
 	return 0;
 }
-#endif 
+#endif
 
 s32 wl_cfg80211_attach_post(struct net_device *ndev)
 {
@@ -12887,7 +12887,7 @@ s32 wl_cfg80211_attach(struct net_device *ndev, void *context)
 	cfg->btcoex_info = wl_cfg80211_btcoex_init(cfg->wdev->netdev);
 	if (!cfg->btcoex_info)
 		goto cfg80211_attach_out;
-#endif 
+#endif
 
 	g_bcm_cfg = cfg;
 
@@ -12896,7 +12896,7 @@ s32 wl_cfg80211_attach(struct net_device *ndev, void *context)
 	err = wl_cfg80211_attach_p2p();
 	if (err)
 		goto cfg80211_attach_out;
-#endif 
+#endif
 
 	INIT_DELAYED_WORK(&cfg->pm_enable_work, wl_cfg80211_work_handler);
 	mutex_init(&cfg->pm_sync);
@@ -12923,7 +12923,7 @@ void wl_cfg80211_detach(void *para)
 #if defined(COEX_DHCP)
 	wl_cfg80211_btcoex_deinit();
 	cfg->btcoex_info = NULL;
-#endif 
+#endif
 
 	wl_setup_rfkill(cfg, FALSE);
 #ifdef DEBUGFS_CFG80211
@@ -12949,7 +12949,7 @@ void wl_cfg80211_detach(void *para)
 #endif /* WL_CFG80211_P2P_DEV_IF  */
 #if defined(WL_ENABLE_P2P_IF)
 	wl_cfg80211_detach_p2p();
-#endif 
+#endif
 
 	wl_cfg80211_ibss_vsie_free(cfg);
 	wl_cfg80211_clear_mgmt_vndr_ies(cfg);
@@ -13511,7 +13511,7 @@ s32 wl_update_wiphybands(struct bcm_cfg80211 *cfg, bool notify)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0))
 	struct ieee80211_supported_band *bands[NUM_NL80211_BANDS] = {NULL, };
 #else
-	struct ieee80211_supported_band *bands[NL80211_NUM_BANDS] = {NULL, };
+	struct ieee80211_supported_band *bands[IEEE80211_NUM_BANDS] = {NULL, };
 #endif
 
 	if (cfg == NULL) {
@@ -13819,11 +13819,11 @@ static s32 __wl_cfg80211_down(struct bcm_cfg80211 *cfg)
 	struct net_device *ndev = bcmcfg_to_prmry_ndev(cfg);
 #if defined(WL_CFG80211) && defined(WL_ENABLE_P2P_IF)
 	struct net_device *p2p_net = cfg->p2p_net;
-#endif 
+#endif
 #ifdef PROP_TXSTATUS_VSDB
 #if defined(BCMSDIO)
 	dhd_pub_t *dhd =  (dhd_pub_t *)(cfg->pub);
-#endif 
+#endif
 #endif /* PROP_TXSTATUS_VSDB */
 	WL_DBG(("In\n"));
 	/* Delete pm_enable_work */
@@ -13843,7 +13843,7 @@ static s32 __wl_cfg80211_down(struct bcm_cfg80211 *cfg)
 				cfg->wlfc_on = false;
 			}
 		}
-#endif 
+#endif
 #endif /* PROP_TXSTATUS_VSDB */
 	}
 
@@ -13900,7 +13900,7 @@ _Pragma("GCC diagnostic ignored \"-Wcast-qual\"")
 		/* p2p discovery iface ndev ptr could be null */
 		if (iter->ndev == NULL)
 			continue;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
 		if (wl_get_drv_status(cfg, CONNECTED, iter->ndev)) {
 			cfg80211_disconnected(iter->ndev, 0, NULL, 0, false, GFP_KERNEL);
 		}
@@ -13926,7 +13926,7 @@ _Pragma("GCC diagnostic pop")
 #endif /* SUPPORT_DEEP_SLEEP */
 		if (p2p_net)
 			dev_close(p2p_net);
-#endif 
+#endif
 
 	/* Avoid deadlock from wl_cfg80211_down */
 	mutex_unlock(&cfg->usr_sync);
@@ -14071,7 +14071,7 @@ int wl_cfg80211_hang(struct net_device *dev, u16 reason)
 	} else
 #endif /* SOFTAP_SEND_HANGEVT */
 	{
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
 		cfg80211_disconnected(dev, reason, NULL, 0, false, GFP_KERNEL);
 #else
 		cfg80211_disconnected(dev, reason, NULL, 0, GFP_KERNEL);
@@ -14126,7 +14126,7 @@ int wl_cfg80211_cleanup(void)
 
 	if (wl_get_drv_status(cfg, CONNECTED, ndev) ||
 		wl_get_drv_status(cfg, CONNECTING, ndev)) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
 		cfg80211_disconnected(ndev, 0, NULL, 0, false, GFP_KERNEL);
 #else
 		cfg80211_disconnected(ndev, 0, NULL, 0, GFP_KERNEL);
