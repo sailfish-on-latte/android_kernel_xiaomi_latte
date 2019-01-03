@@ -44,6 +44,7 @@
 #include<linux/regulator/consumer.h>
 #include<linux/of_gpio.h>
 #endif /* CONFIG_DTS */
+#include <linux/gpio.h>
 #ifdef CONFIG_WIFI_CONTROL_FUNC
 extern int somc_wifi_init(struct platform_device *pdev);
 extern void somc_wifi_deinit(struct platform_device *pdev);
