@@ -863,7 +863,9 @@ int dhdpcie_init(struct pci_dev *pdev)
 				if (!allow_delay_fwdl)
 					break;
 			}
-		} else {
+		} 
+#if !defined(GET_CUSTOM_MAC_ENABLE)        
+		else {
 			/* Set ramdom MAC address during boot time */
 			get_random_bytes(&bus->dhd->mac.octet[3], 3);
 			/* Adding BRCM OUI */
@@ -871,6 +873,7 @@ int dhdpcie_init(struct pci_dev *pdev)
 			bus->dhd->mac.octet[1] = 0x90;
 			bus->dhd->mac.octet[2] = 0x4C;
 		}
+#endif
 
 		/* Attach to the OS network interface */
 		DHD_TRACE(("%s(): Calling dhd_register_if() \n", __FUNCTION__));
