@@ -66,6 +66,7 @@
 #include <linux/uaccess.h>		/* For copy_to_user/put_user/... */
 #include <linux/io.h>			/* For inb/outb/... */
 #include <linux/pm.h>			/* For suspend/resume */
+#include <linux/suspend.h>
 #include <linux/mfd/core.h>
 #include <linux/mfd/lpc_ich.h>
 
@@ -130,6 +131,11 @@ static bool force_no_reboot;
 module_param(force_no_reboot, bool, 0);
 MODULE_PARM_DESC(force_no_reboot,
 	"Prevents the watchdog rebooting the platform (default=0)");
+
+#ifdef CONFIG_PM_SLEEP
+/* Quirk so that we can avoid moving code around */
+static struct notifier_block iTCO_wdt_pm_nb;
+#endif /* CONFIG_PM_SLEEP */
 
 /*
  * Some TCO specific functions
@@ -423,6 +429,11 @@ static void iTCO_wdt_cleanup(void)
 				resource_size(iTCO_wdt_private.gcs_pmc_res));
 	}
 
+#ifdef CONFIG_PM_SLEEP
+	/* De-register the PM notifier block */
+	unregister_pm_notifier(&iTCO_wdt_pm_nb);
+#endif /* CONFIG_PM_SLEEP */
+
 	iTCO_wdt_private.tco_res = NULL;
 	iTCO_wdt_private.smi_res = NULL;
 	iTCO_wdt_private.gcs_pmc_res = NULL;
@@ -549,6 +560,14 @@ static int iTCO_wdt_probe(struct platform_device *dev)
 		goto unreg_tco;
 	}
 
+#ifdef CONFIG_PM_SLEEP
+	/* Handle PM notifications so that we can disable the watchdog on sleeps */
+	ret = register_pm_notifier(&iTCO_wdt_pm_nb);
+	if (ret != 0) {
+		pr_err("unable to register for PM notifications (err=%d)\n", ret);
+	}
+#endif /* CONFIG_PM_SLEEP */
+
 	pr_info("initialized. heartbeat=%d sec (nowayout=%d)\n",
 		heartbeat, nowayout);
 
@@ -623,6 +642,24 @@ static int iTCO_wdt_resume(struct device *dev)
 	return iTCO_wdt_set_timeout(&iTCO_wdt_watchdog_dev,
 				    iTCO_wdt_watchdog_dev.timeout);
 }
+
+static void iTCO_wdt_pm_notifier(struct notifier_block *nb, unsigned long event, void *unused)
+{
+	switch (event) {
+		case PM_SUSPEND_PREPARE:
+			iTCO_wdt_suspend(&iTCO_wdt_watchdog_dev);
+			break;
+		case PM_POST_SUSPEND:
+			iTCO_wdt_resume(&iTCO_wdt_watchdog_dev);
+			break;
+	}
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block iTCO_wdt_pm_nb = {
+	.notifier_call = iTCO_wdt_pm_notifier,
+};
 #endif /* CONFIG_PM_SLEEP */
 
 static SIMPLE_DEV_PM_OPS(iTCO_wdt_pm_ops, iTCO_wdt_suspend, iTCO_wdt_resume);
